@@ -1,0 +1,33 @@
+{
+  "mysql": {
+    "username": "root",
+    "password": "",
+    "host": "mysql",
+    "port": "3306"
+  },
+  "redis": {
+    "addr": "redis:6379",
+    "password": "",
+    "db": 0
+  },
+  "smtp": {
+    "account": "your smtp account",
+    "password": "your smtp password",
+    "host": "smtp.qq.com",
+    "port": 25
+  },
+  "jwt": {
+    "secret": "your jwt secret",
+    "expire": "168h"
+  },
+  "app": {
+    "base-path": "./static",
+    "pre-fix-Url": "http://0.0.0.0:8080"
+  },
+  "ImageResize": {
+    "avatar_w": 256,
+    "avatar_h": 256,
+    "bg_w": 720,
+    "bg_h": 405
+  }
+}

@@ -1,0 +1,35 @@
+# Go 编译二进制产物
+*.exe
+*.out
+
+# Linux 服务器编译出来的程序
+ChatApp-server
+
+# 日志文件
+*.log
+logs/*
+
+# Goland ide 本地缓存
+.idea/
+*.iml
+*.iws
+
+# 本地配置
+config.json
+
+# go workspace
+go.work
+go.work.sum
+
+# windows/mac系统垃圾
+.DS_Store
+Thumbs.db
+
+static/avatar
+static/bgImg
+static/qr
+/.air.toml
+/.env.dev
+/docker-compose.dev.yml
+/Dockerfile.dev
+/tmp/main

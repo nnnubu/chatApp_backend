@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/url"
 	"os"
+	"time"
 
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -28,13 +29,30 @@ func ToMysql(dbName string) *gorm.DB {
 
 	// dsn格式 用户名:密码@tcp(数据库服务地址:端口号)/数据库名	?后面的都是额外的参数，parseTime是自动处理时间格式 loc用于指定时区 这里用Asia/Shanghai 注意这里的/要转换成url编码
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?%s", msq.Username, msq.Password, msq.Host, msq.Port, dbName, params.Encode())
-	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Error),
-	})
-	if err != nil {
-		log.Fatalf("MySQL连接失败：%v", err.Error())
+
+	var db *gorm.DB
+	var err error
+
+	maxRetry := 10
+	for i := 0; i < maxRetry; i++ {
+		db, err = gorm.Open(mysql.Open(dsn), &gorm.Config{
+			Logger: logger.Default.LogMode(logger.Error),
+		})
+		if err == nil {
+			// 额外ping确认连接真正可用
+			sqlDB, pingErr := db.DB()
+			if pingErr == nil {
+				if pingErr = sqlDB.Ping(); pingErr == nil {
+					log.Println("MySQL已连接！")
+					return db
+				}
+			}
+		}
+
+		log.Printf("MySQL连接失败 第%d次重试 2秒后继续: %v", i+1, err)
+		time.Sleep(2 * time.Second)
 	}
-	log.Println("MySQL已连接！")
+	log.Fatalf("MySQL重试%d次全部失败 程序退出: %v", maxRetry, err)
 	return db
 }
 

@@ -4,6 +4,7 @@ import (
 	"ChatApp/config"
 	"context"
 	"log"
+	"time"
 
 	"github.com/go-redis/redis/v8"
 )
@@ -11,17 +12,28 @@ import (
 func ToRedis(ctx context.Context) *redis.Client {
 	log.Println("正在连接Redis...")
 	rd := config.Conf.Redis
-	rc := redis.NewClient(&redis.Options{
-		Addr:     rd.Addr,
-		Password: rd.Password,
-		DB:       rd.DB,
-	})
-	_, err := rc.Ping(ctx).Result()
-	if err != nil {
-		log.Fatalf("Redis连接失败：%v", err)
+	var rc *redis.Client
+	var err error
+
+	maxRetry := 10
+	for i := 0; i < maxRetry; i++ {
+		rc = redis.NewClient(&redis.Options{
+			Addr:     rd.Addr,
+			Password: rd.Password,
+			DB:       rd.DB,
+		})
+		_, err = rc.Ping(ctx).Result()
+		if err == nil {
+			log.Println("Redis已连接！")
+			return rc
+		}
+		log.Printf("Redis连接失败 第%d次重试 2秒后继续: %v", i+1, err)
+		// 关闭本次失败的client，防止泄漏
+		_ = rc.Close()
+		time.Sleep(2 * time.Second)
 	}
-	log.Println("Redis已连接！")
-	return rc
+	log.Fatalf("Redis重试%d次全部失败 程序退出: %v", maxRetry, err)
+	return nil
 }
 
 func OutRedis(rc *redis.Client) {

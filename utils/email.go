@@ -19,6 +19,6 @@ func SendQQEmail(toEmail string, code string) error {
 		config.Conf.Smtp.Account,
 		config.Conf.Smtp.Password,
 	)
-	d.SSL = false //常见的 Smtp 端口：25（非加密）、465（SSL 加密）、587（TLS 加密） 这里根据配置文件来写
+	d.SSL = true //常见的 Smtp 端口：25（非加密）、465（SSL 加密）、587（TLS 加密） 这里根据配置文件来写
 	return d.DialAndSend(m)
 }

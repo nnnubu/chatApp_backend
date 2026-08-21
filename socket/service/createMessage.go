@@ -83,10 +83,11 @@ func CreateMessage(ctx context.Context, db *gorm.DB, senderUid string, chatReq *
 
 		// 将接收人的基础信息推送给消息发送者
 		pushErr = PushBroadCastMsg(sender.UID, "chat", msgId, dto.ChatResp{
-			Uid:             receiver.UID,
+			Uid:             sender.UID,
 			SenderUID:       sender.UID,
-			Nickname:        receiver.Nickname,
-			AvatarUrl:       receiver.Avatar,
+			ReceiverUID:     receiver.UID,
+			Nickname:        sender.Nickname,
+			AvatarUrl:       sender.Avatar,
 			ConversationUID: conversationUid,
 			Content:         content,
 		})
@@ -97,6 +98,7 @@ func CreateMessage(ctx context.Context, db *gorm.DB, senderUid string, chatReq *
 		pushErr = PushBroadCastMsg(receiver.UID, "chat", msgId, dto.ChatResp{
 			Uid:             sender.UID,
 			SenderUID:       sender.UID,
+			ReceiverUID:     receiver.UID,
 			Nickname:        sender.Nickname,
 			AvatarUrl:       sender.Avatar,
 			ConversationUID: conversationUid,

@@ -33,3 +33,4 @@ static/qr
 /docker-compose.dev.yml
 /Dockerfile.dev
 /tmp/main
+/config/configLocal.json

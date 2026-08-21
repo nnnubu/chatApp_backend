@@ -103,7 +103,9 @@ func InitRouters(e *gin.Engine, db *gorm.DB, rc *redis.Client) {
 	GroupAuth.GET("/pullOfflineApply", friend.PullOfflineApply)
 	GroupAuth.GET("/pullCategory", msgCategory.PullCategory)
 	GroupAuth.GET("/pullFriends", friend.PullFriends)
-	GroupAuth.GET("/pullMessages", message.PullMessage)
+	GroupAuth.GET("/pullHistoryMessage", message.PullHistoryMessage)
+	GroupAuth.GET("/pullUnReadMessage", message.PullUnReadMessage)
+	GroupAuth.POST("/markReadStatus", message.MarkReadStatus)
 
 	GroupWs := e.Group("/ws", middleware.AuthMiddleware())
 	GroupWs.GET("/connect", service.WebSocketConnect)

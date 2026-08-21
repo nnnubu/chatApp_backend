@@ -49,6 +49,7 @@ func (uas *UpdateApplyService) UpdateApply(ctx context.Context, db *gorm.DB, ufq
 	var lastMsg string
 	var lastMsgID string
 	var conversationUID string
+	// 此处的信息都是推送给对方的 同意的情况下不需要修改，不同意的情况下需要改一下
 	if ufq.IsAgree {
 		status = 1
 		lastMsg = "我已同意你的好友请求，快来聊天吧"
@@ -209,12 +210,16 @@ func (uas *UpdateApplyService) UpdateApply(ctx context.Context, db *gorm.DB, ufq
 			global.Log.Error(pushErr.Error())
 		}
 		// 将申请人的基础信息返回给当前接收人
+		toSelfMsg := lastMsg
+		if !isAgree {
+			toSelfMsg = "您已拒绝对方好友请求"
+		}
 		if pushErr = service.PushBroadCastMsg(curUid, "addFriend", applyMsgId, dto.AddFriendResponse{
 			Uid:       appUid,
 			ApplyUid:  applyApplyUid,
 			TargetUid: curUid,
 			Nickname:  appNick,
-			Content:   lastMsg,
+			Content:   toSelfMsg,
 			AvatarUrl: appAvatar,
 			Status:    status,
 		}); pushErr != nil {
@@ -232,6 +237,7 @@ func (uas *UpdateApplyService) UpdateApply(ctx context.Context, db *gorm.DB, ufq
 			if pushErr = service.PushBroadCastMsg(appUid, "chat", applyMsgId, dto.ChatResp{
 				Uid:             curUid,
 				SenderUID:       appUid,
+				ReceiverUID:     curUid,
 				Nickname:        curNick,
 				AvatarUrl:       curAvatar,
 				ConversationUID: conversationUID,
@@ -243,6 +249,7 @@ func (uas *UpdateApplyService) UpdateApply(ctx context.Context, db *gorm.DB, ufq
 			if pushErr = service.PushBroadCastMsg(curUid, "chat", applyMsgId, dto.ChatResp{
 				Uid:             appUid,
 				SenderUID:       appUid,
+				ReceiverUID:     curUid,
 				Nickname:        appNick,
 				AvatarUrl:       appAvatar,
 				ConversationUID: conversationUID,
@@ -256,6 +263,7 @@ func (uas *UpdateApplyService) UpdateApply(ctx context.Context, db *gorm.DB, ufq
 			if pushErr = service.PushBroadCastMsg(appUid, "chat", lastMsgID, dto.ChatResp{
 				Uid:             curUid,
 				SenderUID:       curUid,
+				ReceiverUID:     appUid,
 				Nickname:        curNick,
 				AvatarUrl:       curAvatar,
 				ConversationUID: conversationUID,
@@ -268,6 +276,7 @@ func (uas *UpdateApplyService) UpdateApply(ctx context.Context, db *gorm.DB, ufq
 			if pushErr = service.PushBroadCastMsg(curUid, "chat", lastMsgID, dto.ChatResp{
 				Uid:             appUid,
 				SenderUID:       curUid,
+				ReceiverUID:     appUid,
 				Nickname:        appNick,
 				AvatarUrl:       appAvatar,
 				ConversationUID: conversationUID,

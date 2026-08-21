@@ -108,6 +108,7 @@ type PullFriendsResp struct {
 type ChatResp struct {
 	Uid             string `json:"uid"`
 	SenderUID       string `json:"senderUid"`
+	ReceiverUID     string `json:"receiverUid"`
 	Nickname        string `json:"nickname"`
 	AvatarUrl       string `json:"avatarUrl"`
 	ConversationUID string `json:"conversationUid"`
@@ -125,4 +126,8 @@ type PullMessagesReq struct {
 	PageSize        int    `json:"pageSize" form:"pageSize" binding:"required"`
 	CursorMsgId     string `json:"cursorMsgId" form:"cursorMsgId"`
 	ConversationUID string `json:"conversationUid" form:"conversationUid" binding:"required"`
+}
+
+type MarkConversationRead struct {
+	ConversationUID string `json:"conversationUid" binding:"required"`
 }

@@ -150,6 +150,13 @@ func WebSocketConnect(c *gin.Context) {
 					global.Log.Error(err.Error())
 					break
 				}
+				if chatReq.ReceiverUID == uid {
+					ackErr := ReplayAck(uid, conn, wc.RequestId, wc.MsgId, false, "发送对象不能是自己")
+					if ackErr != nil {
+						log.Printf("ack发送失败 reqId=%s err=%v", wc.RequestId, ackErr)
+					}
+					break
+				}
 				newMsgId := utils.GenAutoSnowId()
 				// 消息入库
 				errChat = CreateMessage(msgCtx, db, uid, &chatReq, newMsgId)

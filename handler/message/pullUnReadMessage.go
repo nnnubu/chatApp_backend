@@ -1,35 +1,15 @@
 package message
 
 import (
-	"ChatApp/dto"
 	"ChatApp/model"
 	"ChatApp/service/message"
 	"ChatApp/utils"
-	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
 
-func PullMessage(c *gin.Context) {
-	var req dto.PullMessagesReq
-	if err := c.ShouldBindQuery(&req); err != nil {
-		c.JSON(200, model.CommonResp{
-			Code:    400,
-			Message: "参数错误",
-		})
-		return
-	}
-
-	log.Println(req.PageSize, req.CursorMsgId, req.ConversationUID)
-	// 修正非法分页参数
-	if req.PageSize < 1 {
-		req.PageSize = 20
-	}
-	if req.PageSize > 100 {
-		req.PageSize = 100
-	}
-
+func PullUnReadMessage(c *gin.Context) {
 	uidAny, hasUid := c.Get("uid")
 	if !hasUid {
 		c.JSON(200, model.CommonResp{
@@ -57,18 +37,16 @@ func PullMessage(c *gin.Context) {
 		return
 	}
 
-	returnList, hasMore, err := message.NewPullMessageService().PullMessage(reqCtx, db, currentUid, req.PageSize, req.CursorMsgId, req.ConversationUID)
+	returnList, err := message.NewPullUnReadMessageService().PullUnReadMessage(reqCtx, db, currentUid)
 	if err != nil {
 		return
 	}
 
 	c.JSON(200, model.CommonResp{
 		Code:    200,
-		Message: "测试中",
+		Message: "success",
 		Data: map[string]any{
 			"messages": returnList,
-			"pageSize": req.PageSize,
-			"hasMore":  hasMore,
 		},
 	})
 }

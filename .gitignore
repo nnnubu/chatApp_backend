@@ -3,7 +3,7 @@
 *.out
 
 # Linux 服务器编译出来的程序
-ChatApp-server
+chatapp
 
 # 日志文件
 *.log
@@ -30,7 +30,6 @@ static/bgImg
 static/qr
 /.air.toml
 /.env.dev
-/docker-compose.dev.yml
-/Dockerfile.dev
 /tmp/main
 /config/configLocal.json
+/config/configDocker.json

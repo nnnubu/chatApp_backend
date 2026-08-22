@@ -1,0 +1,61 @@
+#version: "3.8" # compose 语法版本 新版 compose 不再需要这个了
+
+# 定义一组容器服务
+services:
+  # 后端服务名字
+  chatapp:
+    build:
+      context: .  # 构建镜像的上下文 即 当前项目文件夹
+      dockerfile: ./docker/Dockerfile # 指定 dockerfile 构建镜像
+    ports:
+      - "8080:8080" # 端口映射 宿主机:容器内部 外部访问宿主机该端口的流量会被转发进容器
+    volumes:
+      # 挂载卷映射 ./ 代表 宿主机当前项目目录 /app 代表 容器内工作目录
+      - ./config:/app/config
+      - ./static:/app/static
+      # 采用了本地编译 再上传服务器启动的方式 而不采用直接在服务器上编译 go 文件的方式 服务器配置低下得编译半天
+      - ./chatapp:/app/chatapp
+    mem_limit: 700m
+    cpus: 1.2
+    # 启动服务之前 先把 MySQL Redis 容器启动起来
+    depends_on:
+      - mysql
+      - redis
+      # 为该容器设置环境变量 注意如果新增变量什么的需要重建容器才行
+    environment:
+      # 服务配置文件中不配置密码 在 docker 配置密码 另外 服务配置文件中的 hostname 要进行修改
+      # 容器内部访问 MySQL hostname 写服务名字 MySQL 而不是 127.0.0.1
+      # 因为 compose 内部有一个虚拟网络 服务名 就是 域名
+      - mysql_password=your mysql password
+  # MySQL 数据库容器 服务名 mysql
+  mysql:
+    # 使用 mysql8 镜像
+    image: mysql:8.0
+    # restart 代表只要 Docker 服务本身开机自启动 则该容器也跟着自启动
+    restart: always
+    mem_limit: 600m
+    cpus: 0.8
+    environment:
+      MYSQL_ROOT_PASSWORD: "your mysql password"
+      MYSQL_DATABASE: "chatapp" # 自动创建数据库
+    ports:
+      - "3306:3306" # 数据库端口映射 仅内网访问
+    volumes:
+      # 持久化 mysql 数据 命名卷 就算 mysql 容器删掉 数据不会丢失
+      - dev_mysql_data:/var/lib/mysql
+  # redis 容器
+  redis:
+    image: redis:7-alpine
+    restart: always
+    mem_limit: 256m
+    cpus: 0.4
+    command: redis-server --appendonly yes # redis 启动命令
+    ports:
+      - "6379:6379"
+    volumes:
+      # redis数据持久化
+      - dev_redis_data:/data
+# 声明上面用到的命名持久化卷
+volumes:
+  dev_mysql_data:
+  dev_redis_data:

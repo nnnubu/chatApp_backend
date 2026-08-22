@@ -14,7 +14,7 @@
     "account": "your smtp account",
     "password": "your smtp password",
     "host": "smtp.qq.com",
-    "port": 25
+    "port": 465
   },
   "jwt": {
     "secret": "your jwt secret",

@@ -36,7 +36,7 @@ func WebSocketConnect(c *gin.Context) {
 		return
 	}
 
-	_, db, _, err := utils.GetRequestSource(c)
+	_, db, rc, err := utils.GetRequestSource(c)
 	if err != nil {
 		c.JSON(http.StatusOK, model.CommonResp{
 			Code:    500,
@@ -133,11 +133,11 @@ func WebSocketConnect(c *gin.Context) {
 				// 前端主动推送的消息不允许自行携带 msgId 只能由后端生成 此处直接生成而不采用 wc.MsgId
 
 				/**
-					聊天消息逻辑：
-					消息卡片进入：首先用户在好友请求同意之后先吧请求消息加入消息表单，并生成 conversationUID 返回给前端
-					前端拿到 数据渲染成聊天卡片 用户点击进去之后 自带聊天的基础字段数据 后续聊天发送 先入库和推送给目标用户
+				聊天消息逻辑：
+				消息卡片进入：首先用户在好友请求同意之后先吧请求消息加入消息表单，并生成 conversationUID 返回给前端
+				前端拿到 数据渲染成聊天卡片 用户点击进去之后 自带聊天的基础字段数据 后续聊天发送 先入库和推送给目标用户
 
-					好友主页进入： conversationUID 需由后端查询或生成并入库推送
+				好友主页进入： conversationUID 需由后端查询或生成并入库推送
 				**/
 				var errChat error
 				var chatReq dto.ChatReq
@@ -150,6 +150,8 @@ func WebSocketConnect(c *gin.Context) {
 					global.Log.Error(err.Error())
 					break
 				}
+				// 传递前端生成的 requestId，用于幂等性检查
+				chatReq.RequestId = wc.RequestId
 				if chatReq.ReceiverUID == uid {
 					ackErr := ReplayAck(uid, conn, wc.RequestId, wc.MsgId, false, "发送对象不能是自己")
 					if ackErr != nil {
@@ -159,9 +161,13 @@ func WebSocketConnect(c *gin.Context) {
 				}
 				newMsgId := utils.GenAutoSnowId()
 				// 消息入库
-				errChat = CreateMessage(msgCtx, db, uid, &chatReq, newMsgId)
+				errChat = CreateMessage(msgCtx, db, rc, uid, &chatReq, newMsgId)
 				if errChat != nil {
 					log.Printf("有一条消息推送失败：: %v", errChat)
+					ackErr := ReplayAck(uid, conn, wc.RequestId, wc.MsgId, false, errChat.Error())
+					if ackErr != nil {
+						log.Printf("ack发送失败 reqId=%s err=%v", wc.RequestId, ackErr)
+					}
 					break
 				}
 				// 再推送 ack

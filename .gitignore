@@ -33,3 +33,5 @@ static/qr
 /tmp/main
 /config/configLocal.json
 /config/configDocker.json
+
+__debug_bin.exe*

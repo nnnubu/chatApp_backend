@@ -116,7 +116,10 @@ func (wsi *WebSocketService) AddConn(uid string, conn *websocket.Conn, item *Con
 	if err != nil {
 		log.Printf("序列化消息错误: %v", err)
 	}
-	item.MsgChan <- msg
+	// 使用 safeSendChan 防止管道满时阻塞持有锁
+	if !safeSendChan(item.MsgChan, msg) {
+		log.Printf("ready 消息发送失败，管道已满")
+	}
 
 	// 将该连接注册到用户映射 并注入资源
 	subMap[conn] = item

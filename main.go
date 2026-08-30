@@ -34,7 +34,7 @@ func main() {
 	//}
 	//_ = srv.ListenAndServe()
 
-	if err := config.LoadConfig("config/configDocker.json"); err != nil {
+	if err := config.LoadConfig("config/configLocal.json"); err != nil {
 		log.Fatalf("加载配置文件失败: %v", err)
 	}
 	if err := utils.InitSnowflake(); err != nil {
@@ -79,6 +79,12 @@ func main() {
 	}
 	if err := db.AutoMigrate(&model.ConversationMember{}); err != nil {
 		log.Fatalf("自动创建会话成员表单失败：%v", err)
+	}
+	if err := db.AutoMigrate(&model.Book{}); err != nil {
+		log.Fatalf("自动创建图书表单失败：%v", err)
+	}
+	if err := db.AutoMigrate(&model.UserBook{}); err != nil {
+		log.Fatalf("自动创建用户书架表单失败：%v", err)
 	}
 
 	routers.InitRouters(e, db, rc)

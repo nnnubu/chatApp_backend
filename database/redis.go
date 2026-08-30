@@ -4,6 +4,7 @@ import (
 	"ChatApp/config"
 	"context"
 	"log"
+	"os"
 	"time"
 
 	"github.com/go-redis/redis/v8"
@@ -14,6 +15,9 @@ func ToRedis(ctx context.Context) *redis.Client {
 	rd := config.Conf.Redis
 	var rc *redis.Client
 	var err error
+	if envPwd := os.Getenv("redis_password"); envPwd != "" {
+		rd.Password = envPwd
+	}
 
 	maxRetry := 10
 	for i := 0; i < maxRetry; i++ {

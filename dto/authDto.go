@@ -120,6 +120,7 @@ type ChatReq struct {
 	ConversationUID string `json:"conversationUid,omitempty"`
 	ReceiverUID     string `json:"receiverUid" binding:"required"`
 	Content         string `json:"content"`
+	RequestId       string `json:"requestId,omitempty"` // 前端生成的请求ID，用于幂等性检查
 }
 
 type PullMessagesReq struct {

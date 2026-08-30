@@ -89,3 +89,17 @@ func UpdateAvatarUrl(ctx context.Context, txDb *gorm.DB, thumbUrl string, uid st
 func UpdateBgImgUrl(ctx context.Context, txDb *gorm.DB, thumbUrl string, uid string) error {
 	return txDb.WithContext(ctx).Model(&User{}).Where("uid = ?", uid).UpdateColumn("bgImg", thumbUrl).Error
 }
+
+// SearchUsers 搜索用户（按昵称或邮箱模糊匹配，排除自己）
+func SearchUsers(ctx context.Context, db *gorm.DB, keyword string, excludeUid string, limit int) ([]User, error) {
+	var users []User
+	err := db.WithContext(ctx).Model(&User{}).
+		Where("uid != ?", excludeUid).
+		Where("nickname LIKE ? OR email LIKE ?", "%"+keyword+"%", "%"+keyword+"%").
+		Limit(limit).
+		Find(&users).Error
+	if err != nil {
+		return nil, err
+	}
+	return users, nil
+}

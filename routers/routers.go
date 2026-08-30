@@ -1,6 +1,7 @@
 package routers
 
 import (
+	"ChatApp/handler/book"
 	"ChatApp/handler/friend"
 	"ChatApp/handler/message"
 	"ChatApp/handler/msgCategory"
@@ -103,9 +104,19 @@ func InitRouters(e *gin.Engine, db *gorm.DB, rc *redis.Client) {
 	GroupAuth.GET("/pullOfflineApply", friend.PullOfflineApply)
 	GroupAuth.GET("/pullCategory", msgCategory.PullCategory)
 	GroupAuth.GET("/pullFriends", friend.PullFriends)
+	GroupAuth.GET("/searchFriends", friend.SearchFriendsHandler)
 	GroupAuth.GET("/pullHistoryMessage", message.PullHistoryMessage)
 	GroupAuth.GET("/pullUnReadMessage", message.PullUnReadMessage)
 	GroupAuth.POST("/markReadStatus", message.MarkReadStatus)
+
+	// 图书模块
+	GroupAuth.GET("/pullBooks", book.PullBooks)
+	GroupAuth.GET("/bookDetail", book.GetBookDetail)
+	GroupAuth.GET("/bookCategories", book.GetCategories)
+	GroupAuth.POST("/addToShelf", book.AddToShelf)
+	GroupAuth.GET("/pullShelf", book.PullShelf)
+	GroupAuth.POST("/updateShelf", book.UpdateShelf)
+	GroupAuth.DELETE("/removeFromShelf", book.RemoveFromShelf)
 
 	GroupWs := e.Group("/ws", middleware.AuthMiddleware())
 	GroupWs.GET("/connect", service.WebSocketConnect)

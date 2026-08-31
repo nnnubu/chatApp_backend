@@ -34,7 +34,7 @@ func main() {
 	//}
 	//_ = srv.ListenAndServe()
 
-	if err := config.LoadConfig("config/configLocal.json"); err != nil {
+	if err := config.LoadConfig("config/configDocker.json"); err != nil {
 		log.Fatalf("加载配置文件失败: %v", err)
 	}
 	if err := utils.InitSnowflake(); err != nil {

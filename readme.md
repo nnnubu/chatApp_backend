@@ -1,4 +1,4 @@
-# ChatApp Backend
+﻿# ChatApp Backend
 
 基于 Go + Gin + GORM 的即时通讯后端服务，支持私聊、好友系统、WebSocket 实时消息推送、游标分页历史消息、消息已读回执等核心 IM 功能。采用 Docker Compose 一键部署，本地交叉编译二进制上传服务器运行。
 
@@ -377,7 +377,8 @@ WebSocketService 监听 ackRespStream:
   │   → addPendingId 时 requestCount++ (第2次, 第3次)
   ├─ 第3次仍超时 → addPendingId 判定超限
   │   → 移除 pending, 加入 roamedMsgList
-  │   → 推送 AckStatus.roamed (消息流放, UI 可提示重发，被流放的消息暂时还没做用户手动重复功能)
+  → 推送 AckStatus.roamed (消息流放, UI 显示感叹号, 支持用户点击手动重发)
+  → 前端重发: resetForResend 出队 → 重新入队发送 → 重复 ACK 流程
   └─ success → 正常消费下一条
 ```
 
@@ -448,6 +449,8 @@ WebSocketService 监听 ackRespStream:
 - 会话级已读回执（水位线设计）
 - 多设备同时在线（消息广播到所有设备）
 - 消息 ACK 确认（8s 超时，最多重试 3 次）
+- 消息防重复（requestId 幂等去重，Redis 防重复推送与入库）
+- 失败消息手动重发支持（前端感叹号点击后重新入队，后端幂等校验避免重复入库）
 
 ### WebSocket 架构
 - **分片连接池**：16 分片 + 分片锁，降低锁竞争
@@ -516,6 +519,14 @@ chatApp_backend/
 | GET | `/auth/pullOfflineApply` | 拉取离线好友申请 |
 | GET | `/auth/pullCategory` | 拉取消息分类列表 |
 | GET | `/auth/pullFriends` | 拉取好友列表 |
+| GET | `/auth/searchFriends` | 搜索好友（昵称/邮箱） |
+| GET | `/auth/pullBooks` | 拉取图书列表 |
+| GET | `/auth/bookDetail` | 图书详情 |
+| GET | `/auth/bookCategories` | 图书分类 |
+| POST | `/auth/addToShelf` | 加入书架 |
+| GET | `/auth/pullShelf` | 拉取我的书架 |
+| POST | `/auth/updateShelf` | 更新书架进度 |
+| DELETE | `/auth/removeFromShelf` | 移出书架 |
 | GET | `/auth/pullHistoryMessage` | 游标分页拉取历史消息 |
 | GET | `/auth/pullUnReadMessage` | 拉取所有未读消息 |
 | POST | `/auth/markReadStatus` | 标记会话已读 |
@@ -606,6 +617,8 @@ docker compose logs -f chatapp
 7. **静默断网检测**：TCP 重传超时前无法感知断连，用心跳 ping/pong + 连续丢失阈值主动判定死亡
 8. **半开放连接**：`IOWebSocketChannel.connect` 同步返回不代表握手成功，需等待后端 `ready` 信号才允许业务通信
 9. **指数退避重连**：断网瞬间大量重连会造成重连风暴，用 2→4→8→16s 退避，健康后重置
+10. **消息幂等去重**：前端手动重发同一 requestId 时，用 Redis 标记 + requestId 校验拦截重复入库与重复推送，避免断网重发造成消息重复
+11. **重发链路闭环**：ACK 超时流放 → 前端感叹号 → 用户手动重发 → 后端幂等校验 → 正常入库推送，兼顾可靠性与防重
 
 ## 待开发
 
@@ -613,7 +626,7 @@ docker compose logs -f chatapp
 - [ ] 消息撤回
 - [ ] 消息搜索
 - [ ] 图片/文件/语音消息
-- [ ] 读书模块
+- [x] 读书模块（图书列表/详情/分类/书架/搜索）
 - [ ] WebSocket 平滑下线
 - [ ] CheckOrigin 域名限制
 

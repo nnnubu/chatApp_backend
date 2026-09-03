@@ -20,7 +20,9 @@ type Message struct {
 	SenderUID       string    `gorm:"size:36;not null;comment:消息发送用户UID" json:"senderUID"`
 	ConversationUID string    `gorm:"size:36;not null;comment:会话UID" json:"conversationUID"`
 	MsgType         int8      `gorm:"type:tinyint;not null;comment:消息业务类型" json:"msgType"`
-	Content         string    `gorm:"type:text;comment:消息内容" json:"content"`
+	// ContentType 消息内容类型 0=文本(默认) 1=图片 2=语音 3=视频
+	ContentType     int8      `gorm:"type:tinyint;not null;default:0;comment:消息内容类型" json:"contentType"`
+	Content         string    `gorm:"type:text;comment:消息内容 文本为纯字符串 图片等为JSON" json:"content"`
 	CreatedAt       time.Time `gorm:"autoCreateTime" json:"createdAt"`
 	UpdatedAt       time.Time `gorm:"autoUpdateTime" json:"updatedAt"`
 	// 使用伪字段来专门存放索引标签 下划线不会生成数据库列

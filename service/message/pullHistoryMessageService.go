@@ -56,6 +56,7 @@ func (pms *PullHistoryMessageService) PullHistoryMessage(ctx context.Context, db
 			Nickname:        sender.Nickname,
 			AvatarUrl:       sender.Avatar,
 			ConversationUID: message.ConversationUID,
+			ContentType:     message.ContentType,
 			Content:         message.Content,
 			IsInsertToTop:   true,
 		})

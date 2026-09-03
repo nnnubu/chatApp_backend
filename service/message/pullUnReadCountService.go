@@ -38,6 +38,7 @@ func (service *PullUnReadMessageService) PullUnReadMessage(ctx context.Context, 
 			Nickname:        sender.Nickname,
 			AvatarUrl:       sender.Avatar,
 			ConversationUID: message.ConversationUID,
+			ContentType:     message.ContentType,
 			Content:         message.Content,
 			IsInsertToTop:   false,
 		})

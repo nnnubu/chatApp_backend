@@ -57,8 +57,13 @@ func InitRouters(e *gin.Engine, db *gorm.DB, rc *redis.Client) {
 		MaxAge: 12 * time.Hour,
 	}))
 
-	//设置Uer-Agent反爬
+	//设置Uer-Agent反爬（仅对 API 接口生效，静态资源 /static/ 放行，
+	//避免原生播放器/图片加载器（UA 为 okhttp 等）被拦截导致资源加载失败）
 	e.Use(func(c *gin.Context) {
+		if strings.Contains(c.Request.URL.Path, "/static/") {
+			c.Next()
+			return
+		}
 		userAgent := strings.TrimSpace(c.Request.Header.Get("User-Agent"))
 		if userAgent == "" {
 			c.JSON(http.StatusForbidden, gin.H{"error": "Forbidden"})
@@ -96,6 +101,8 @@ func InitRouters(e *gin.Engine, db *gorm.DB, rc *redis.Client) {
 
 	GroupAuth := e.Group("/auth", middleware.AuthMiddleware())
 	GroupAuth.POST("/uploadImage", user.UploadImage)
+	GroupAuth.POST("/uploadChatImage", user.UploadChatImage)
+	GroupAuth.POST("/uploadChatVoice", user.UploadChatVoice)
 	GroupAuth.POST("/updateInfo", user.UpdateInfo)
 	GroupAuth.POST("/getUserQR", user.GetUserQR)
 	GroupAuth.POST("/visitOthers", user.VisitOthers)

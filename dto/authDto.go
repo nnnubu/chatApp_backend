@@ -112,6 +112,7 @@ type ChatResp struct {
 	Nickname        string `json:"nickname"`
 	AvatarUrl       string `json:"avatarUrl"`
 	ConversationUID string `json:"conversationUid"`
+	ContentType     int8   `json:"contentType"` // 0=文本 1=图片 2=语音 3=视频
 	Content         string `json:"content"`
 	IsInsertToTop   bool   `json:"isInsertToTop"`
 }
@@ -119,6 +120,7 @@ type ChatResp struct {
 type ChatReq struct {
 	ConversationUID string `json:"conversationUid,omitempty"`
 	ReceiverUID     string `json:"receiverUid" binding:"required"`
+	ContentType     int8   `json:"contentType"` // 0=文本 1=图片 2=语音 3=视频
 	Content         string `json:"content"`
 	RequestId       string `json:"requestId,omitempty"` // 前端生成的请求ID，用于幂等性检查
 }

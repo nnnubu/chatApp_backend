@@ -20,6 +20,7 @@ import (
 func WebSocketConnect(c *gin.Context) {
 	uidAny, hasUid := c.Get("uid")
 	if !hasUid {
+		log.Printf("WebSocket 连接被拒: 上下文无 uid, path=%s", c.Request.URL.Path)
 		c.JSON(200, model.CommonResp{
 			Code:    401,
 			Message: "登录态缺失，请重新登录",
@@ -29,6 +30,7 @@ func WebSocketConnect(c *gin.Context) {
 
 	uid, ok := uidAny.(string)
 	if !ok {
+		log.Printf("WebSocket 连接被拒: uid 类型错误, path=%s", c.Request.URL.Path)
 		c.JSON(200, model.CommonResp{
 			Code:    401,
 			Message: "登录信息错误，请重新登录",
@@ -38,6 +40,7 @@ func WebSocketConnect(c *gin.Context) {
 
 	_, db, rc, err := utils.GetRequestSource(c)
 	if err != nil {
+		log.Printf("用户：%s 获取请求依赖失败: %v", uid, err)
 		c.JSON(http.StatusOK, model.CommonResp{
 			Code:    500,
 			Message: err.Error(),
@@ -50,6 +53,9 @@ func WebSocketConnect(c *gin.Context) {
 	//responseHeader 用于向客户端发送额外的响应头
 	conn, err := socket.WsInstance.Upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
+		// Upgrade 失败：Gin 未写入任何响应，默认返回 HTTP 200 空响应，
+		// 前端会报 "not upgraded to websocket, HTTP 200"。这里记录具体失败原因便于排查。
+		log.Printf("用户：%s WebSocket 握手升级失败: %v", uid, err)
 		return
 	}
 	// 运行至此代表已被劫持成功，此后不要再尝试使用c.json写入 http 响应

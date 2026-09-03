@@ -97,6 +97,7 @@ func CreateMessage(ctx context.Context, db *gorm.DB, rc *redis.Client, senderUid
 			SenderUID:       senderUid,
 			ConversationUID: conversationUid,
 			MsgType:         model.MsgTypePrivateChat,
+			ContentType:     chatReq.ContentType,
 			Content:         chatReq.Content,
 		}
 		err = model.CreateMessage(ctx, tx, msg)
@@ -118,7 +119,7 @@ func CreateMessage(ctx context.Context, db *gorm.DB, rc *redis.Client, senderUid
 	}
 
 	// 消息入库之后 开始推送
-	go func(senderUid, receiverUid, conversationUid, msgId, content string) {
+	go func(senderUid, receiverUid, conversationUid, msgId, content string, contentType int8) {
 		var pushErr error
 		taskCtx := context.Background()
 		sender, exist, err := model.GetUserByUID(taskCtx, db, senderUid)
@@ -141,6 +142,7 @@ func CreateMessage(ctx context.Context, db *gorm.DB, rc *redis.Client, senderUid
 			Nickname:        sender.Nickname,
 			AvatarUrl:       sender.Avatar,
 			ConversationUID: conversationUid,
+			ContentType:     chatReq.ContentType,
 			Content:         content,
 		})
 		if pushErr != nil {
@@ -154,11 +156,12 @@ func CreateMessage(ctx context.Context, db *gorm.DB, rc *redis.Client, senderUid
 			Nickname:        sender.Nickname,
 			AvatarUrl:       sender.Avatar,
 			ConversationUID: conversationUid,
+			ContentType:     chatReq.ContentType,
 			Content:         content,
 		})
 		if pushErr != nil {
 			global.Log.Error("推送消息给接收者失败", zap.String("msgId", msgId), zap.Error(pushErr))
 		}
-	}(senderUid, chatReq.ReceiverUID, conversationUid, msg.MsgID, msg.Content)
+	}(senderUid, chatReq.ReceiverUID, conversationUid, msg.MsgID, msg.Content, msg.ContentType)
 	return conversationUid, nil
 }

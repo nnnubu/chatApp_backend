@@ -4,6 +4,8 @@ import (
 	"ChatApp/config"
 	"ChatApp/dto"
 	"ChatApp/model"
+	"ChatApp/socket/service"
+	"ChatApp/utils"
 	"context"
 	"errors"
 
@@ -30,10 +32,32 @@ func (gos *VisitOthersService) VisitOthers(ctx context.Context, db *gorm.DB, cur
 		return nil, errors.New("系统繁忙，请稍后重试")
 	}
 
-	_, conversationUid, err := model.GetPrivateConversation(ctx, db, currentUid, targetUid)
+	exist, conversationUid, err := model.GetPrivateConversation(ctx, db, currentUid, targetUid)
 	if err != nil {
 		return nil, err
 	}
+
+	// AI 用户：会话不存在时自动创建
+	if !exist && service.IsAIUser(targetUid) {
+		conversationUid = utils.GenAutoSnowId()
+		err = db.Transaction(func(tx *gorm.DB) error {
+			if err := tx.Create(&model.Conversation{
+				ConversationUID:  conversationUid,
+				ConversationType: model.MsgTypePrivateChat,
+			}).Error; err != nil {
+				return err
+			}
+			members := []model.ConversationMember{
+				{ConversationUID: conversationUid, UID: currentUid},
+				{ConversationUID: conversationUid, UID: targetUid},
+			}
+			return tx.Create(&members).Error
+		})
+		if err != nil {
+			return nil, errors.New("系统繁忙，请稍后重试")
+		}
+	}
+
 	return &dto.GetOthersResponse{
 		Uid:      user.UID,
 		Nickname: user.Nickname,

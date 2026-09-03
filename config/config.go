@@ -40,6 +40,20 @@ type Config struct {
 		BgW     int `json:"bg_w"`
 		BgH     int `json:"bg_h"`
 	}
+	AI struct {
+		ServiceURL         string `json:"service-url"`            // FastAPI AI 服务地址，如 http://127.0.0.1:8000
+		ProactiveEnabled   bool   `json:"proactive-enabled"`      // 主动消息总开关
+		ProactiveCheckSec  int    `json:"proactive-check-sec"`    // 检查周期（秒）
+		ProactiveMinMinute int    `json:"proactive-min-minute"`   // 主动消息最小间隔（分钟）
+		ProactiveMaxMinute int    `json:"proactive-max-minute"`   // 主动消息最大间隔（分钟）
+		Characters         []AICharacter `json:"characters"`      // AI 角色列表，控制每个角色是否开启主动消息
+	}
+}
+
+// AICharacter AI 角色配置
+type AICharacter struct {
+	UID       string `json:"uid"`        // AI 的 UID
+	Proactive bool   `json:"proactive"`  // 是否开启主动消息
 }
 
 func LoadConfig(path string) error {

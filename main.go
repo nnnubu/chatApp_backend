@@ -6,6 +6,7 @@ import (
 	"ChatApp/global"
 	"ChatApp/model"
 	"ChatApp/routers"
+	"ChatApp/socket/service"
 	"ChatApp/utils"
 	"context"
 	"log"
@@ -34,7 +35,7 @@ func main() {
 	//}
 	//_ = srv.ListenAndServe()
 
-	if err := config.LoadConfig("config/configDocker.json"); err != nil {
+	if err := config.LoadConfig("config/configLocal.json"); err != nil {
 		log.Fatalf("加载配置文件失败: %v", err)
 	}
 	if err := utils.InitSnowflake(); err != nil {
@@ -86,6 +87,46 @@ func main() {
 	if err := db.AutoMigrate(&model.UserBook{}); err != nil {
 		log.Fatalf("自动创建用户书架表单失败：%v", err)
 	}
+
+	// 初始化 AI 角色用户（不存在则自动创建）
+	aiCharacters := []struct {
+		UID      string
+		Nickname string
+		Gender   int8
+		Email    string
+		Avatar   string
+		Intro    string
+	}{
+		{"ai_debug_001", "小助手", 0, "debug@chatapp.local", "/static/default/avatar/df_avatar1.jpg", "调试用AI助手，友好简洁，用于测试多角色架构。"},
+	}
+	for _, ai := range aiCharacters {
+		_, exist, err := model.GetUserByUID(context.Background(), db, ai.UID)
+		if err != nil {
+			log.Printf("查询AI用户 %s 失败: %v", ai.UID, err)
+			continue
+		}
+		if exist {
+			continue
+		}
+		aiUser := &model.User{
+			UID:      ai.UID,
+			Nickname: ai.Nickname,
+			Password: "ai_no_login_placeholder",
+			Gender:   ai.Gender,
+			Email:    ai.Email,
+			Avatar:   ai.Avatar,
+			BgImg:    "",
+			Intro:    ai.Intro,
+		}
+		if err := model.CreateUser(context.Background(), db, aiUser); err != nil {
+			log.Printf("创建AI用户 %s 失败: %v", ai.UID, err)
+		} else {
+			log.Printf("AI 角色 %s(%s) 已自动创建", ai.Nickname, ai.UID)
+		}
+	}
+
+	// 启动 AI 主动消息调度器
+	service.InitAIProactiveScheduler(db)
 
 	routers.InitRouters(e, db, rc)
 	if err := e.Run(strings.Replace(config.Conf.App.PreFixUrl, "http://", "", 1)); err != nil {

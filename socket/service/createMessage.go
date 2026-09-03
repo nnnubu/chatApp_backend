@@ -4,6 +4,7 @@ import (
 	"ChatApp/dto"
 	"ChatApp/global"
 	"ChatApp/model"
+	"ChatApp/utils"
 	"context"
 	"errors"
 	"time"
@@ -19,7 +20,7 @@ const msgIdempotentPrefix = "msg:idempotent:"
 // 幂等性检查的过期时间（5分钟）
 const msgIdempotentTTL = 5 * time.Minute
 
-func CreateMessage(ctx context.Context, db *gorm.DB, rc *redis.Client, senderUid string, chatReq *dto.ChatReq, newMsgId string) error {
+func CreateMessage(ctx context.Context, db *gorm.DB, rc *redis.Client, senderUid string, chatReq *dto.ChatReq, newMsgId string) (string, error) {
 	var msg *model.Message
 	conversationUid := chatReq.ConversationUID
 
@@ -36,7 +37,7 @@ func CreateMessage(ctx context.Context, db *gorm.DB, rc *redis.Client, senderUid
 			global.Log.Info("消息重复发送，已通过幂等性检查拦截",
 				zap.String("requestId", chatReq.RequestId),
 				zap.String("msgId", newMsgId))
-			return nil
+			return chatReq.ConversationUID, nil
 		}
 	}
 
@@ -55,12 +56,28 @@ func CreateMessage(ctx context.Context, db *gorm.DB, rc *redis.Client, senderUid
 				global.Log.Error("非法的会话id")
 				return errors.New("非法的会话id")
 			}
-			/**
-			若两者未发起过私聊会话 且未携带会话id 则新设置一个会话id
-			不过这种情况是和陌生人私聊 也就是还不是好友的情况下才会触发
-			但是我目前还没做和陌生人私聊的入口 仅好友可以私聊 所以此处先占位不做
-			**/
-			//conversationUid = utils.GenAutoSnowId()
+			// AI 用户：自动创建私聊会话
+			if IsAIUser(chatReq.ReceiverUID) {
+				conversationUid = utils.GenAutoSnowId()
+				// 创建会话记录
+				if err := tx.Create(&model.Conversation{
+					ConversationUID:  conversationUid,
+					ConversationType: model.MsgTypePrivateChat,
+				}).Error; err != nil {
+					global.Log.Error("创建AI会话失败", zap.Error(err))
+					return err
+				}
+				// 创建会话成员（用户 + AI）
+				members := []model.ConversationMember{
+					{ConversationUID: conversationUid, UID: senderUid},
+					{ConversationUID: conversationUid, UID: chatReq.ReceiverUID},
+				}
+				if err := tx.Create(&members).Error; err != nil {
+					global.Log.Error("创建AI会话成员失败", zap.Error(err))
+					return err
+				}
+				global.Log.Info("AI会话已自动创建", zap.String("conversationUid", conversationUid))
+			}
 		}
 
 		// 若两者存在过私聊会话 且传输了 conversationUid 则进行判断会话合法与否
@@ -97,7 +114,7 @@ func CreateMessage(ctx context.Context, db *gorm.DB, rc *redis.Client, senderUid
 			idempotentKey := msgIdempotentPrefix + chatReq.RequestId
 			_ = rc.Del(ctx, idempotentKey).Err()
 		}
-		return err
+		return "", err
 	}
 
 	// 消息入库之后 开始推送
@@ -116,7 +133,7 @@ func CreateMessage(ctx context.Context, db *gorm.DB, rc *redis.Client, senderUid
 			return
 		}
 
-		// 将接收人的基础信息推送给消息发送者
+		// 将接收人的基础信息推送给消息发送者（发送者不在线时仅记录日志，不阻断接收者推送）
 		pushErr = PushBroadCastMsg(sender.UID, "chat", msgId, dto.ChatResp{
 			Uid:             sender.UID,
 			SenderUID:       sender.UID,
@@ -127,7 +144,7 @@ func CreateMessage(ctx context.Context, db *gorm.DB, rc *redis.Client, senderUid
 			Content:         content,
 		})
 		if pushErr != nil {
-			return
+			global.Log.Warn("推送消息给发送者失败（可能不在线）", zap.String("msgId", msgId), zap.Error(pushErr))
 		}
 		// 将发起人的基础信息推送给消息接收者
 		pushErr = PushBroadCastMsg(receiver.UID, "chat", msgId, dto.ChatResp{
@@ -140,8 +157,8 @@ func CreateMessage(ctx context.Context, db *gorm.DB, rc *redis.Client, senderUid
 			Content:         content,
 		})
 		if pushErr != nil {
-			return
+			global.Log.Error("推送消息给接收者失败", zap.String("msgId", msgId), zap.Error(pushErr))
 		}
 	}(senderUid, chatReq.ReceiverUID, conversationUid, msg.MsgID, msg.Content)
-	return nil
+	return conversationUid, nil
 }

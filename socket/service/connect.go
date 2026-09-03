@@ -161,7 +161,8 @@ func WebSocketConnect(c *gin.Context) {
 				}
 				newMsgId := utils.GenAutoSnowId()
 				// 消息入库
-				errChat = CreateMessage(msgCtx, db, rc, uid, &chatReq, newMsgId)
+				var convUid string
+				convUid, errChat = CreateMessage(msgCtx, db, rc, uid, &chatReq, newMsgId)
 				if errChat != nil {
 					log.Printf("有一条消息推送失败：: %v", errChat)
 					ackErr := ReplayAck(uid, conn, wc.RequestId, wc.MsgId, false, errChat.Error())
@@ -175,6 +176,11 @@ func WebSocketConnect(c *gin.Context) {
 				if ackErr != nil {
 					log.Printf("有一条消息接收失败：: %v", ackErr)
 					break
+				}
+				// 如果接收方是 AI，异步触发 AI 回复
+				if IsAIUser(chatReq.ReceiverUID) {
+					chatReq.ConversationUID = convUid
+					go HandleAIMessage(db, uid, &chatReq)
 				}
 			case "markRead":
 				var readData dto.MarkReadDto

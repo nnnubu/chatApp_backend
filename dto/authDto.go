@@ -134,3 +134,17 @@ type PullMessagesReq struct {
 type MarkConversationRead struct {
 	ConversationUID string `json:"conversationUid" binding:"required"`
 }
+
+// RecallMessageReq 撤回消息请求
+type RecallMessageReq struct {
+	MsgId           string `json:"msgId" binding:"required"`
+	ConversationUID string `json:"conversationUid" binding:"required"`
+}
+
+// RecallResp 撤回事件广播 payload（WS msgType=recall）
+type RecallResp struct {
+	MsgId           string `json:"msgId"`
+	ConversationUID string `json:"conversationUid"`
+	SenderUID       string `json:"senderUid"`
+	ReceiverUID     string `json:"receiverUid"`
+}

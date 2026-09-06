@@ -103,6 +103,7 @@ func InitRouters(e *gin.Engine, db *gorm.DB, rc *redis.Client) {
 	GroupAuth.POST("/uploadImage", user.UploadImage)
 	GroupAuth.POST("/uploadChatImage", user.UploadChatImage)
 	GroupAuth.POST("/uploadChatVoice", user.UploadChatVoice)
+	GroupAuth.POST("/uploadChatVideo", user.UploadChatVideo)
 	GroupAuth.POST("/updateInfo", user.UpdateInfo)
 	GroupAuth.POST("/getUserQR", user.GetUserQR)
 	GroupAuth.POST("/visitOthers", user.VisitOthers)
@@ -115,6 +116,7 @@ func InitRouters(e *gin.Engine, db *gorm.DB, rc *redis.Client) {
 	GroupAuth.GET("/pullHistoryMessage", message.PullHistoryMessage)
 	GroupAuth.GET("/pullUnReadMessage", message.PullUnReadMessage)
 	GroupAuth.POST("/markReadStatus", message.MarkReadStatus)
+	GroupAuth.POST("/recallMessage", message.RecallMessage)
 
 	// 图书模块
 	GroupAuth.GET("/pullBooks", book.PullBooks)

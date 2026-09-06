@@ -35,3 +35,8 @@ static/qr
 /config/configDocker.json
 
 __debug_bin.exe*
+
+static/chatImg
+static/chatVideo
+static/chatVoice
+static/userSticker

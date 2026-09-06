@@ -23,6 +23,8 @@ type Message struct {
 	// ContentType 消息内容类型 0=文本(默认) 1=图片 2=语音 3=视频
 	ContentType     int8      `gorm:"type:tinyint;not null;default:0;comment:消息内容类型" json:"contentType"`
 	Content         string    `gorm:"type:text;comment:消息内容 文本为纯字符串 图片等为JSON" json:"content"`
+	// Recalled 是否已撤回 true=撤回后仅展示提示文案 不展示原内容
+	Recalled        bool      `gorm:"default:false;comment:是否已撤回" json:"recalled"`
 	CreatedAt       time.Time `gorm:"autoCreateTime" json:"createdAt"`
 	UpdatedAt       time.Time `gorm:"autoUpdateTime" json:"updatedAt"`
 	// 使用伪字段来专门存放索引标签 下划线不会生成数据库列
@@ -169,10 +171,12 @@ func CreateConversationMember(ctx context.Context, db *gorm.DB, conversationMemb
 	return nil
 }
 
-// PullHistoryMessage 游标拉取历史消息
+// PullHistoryMessage 游标拉取历史消息（已撤回消息不返回）
 func PullHistoryMessage(ctx context.Context, db *gorm.DB, pageSize int, cursorMsgId string, conversationUid string) (list []*Message, hasMore bool, err error) {
-	// 消息表中 滤出指定会话id 的所有内容
-	query := db.WithContext(ctx).Model(&Message{}).Where("conversation_uid = ?", conversationUid)
+	// 消息表中 滤出指定会话id 的所有内容 已撤回的消息不返回（软删除：数据库保留记录 客户端不可见）
+	query := db.WithContext(ctx).Model(&Message{}).
+		Where("conversation_uid = ?", conversationUid).
+		Where("recalled = ?", false)
 	// 游标不为空 找出所有 msgId < 当前值的消息 因为 雪花 id 大 = 新消息 小 = 旧消息
 	if cursorMsgId != "" {
 		query = query.Where("msg_id < ?", cursorMsgId)
@@ -190,7 +194,7 @@ func PullHistoryMessage(ctx context.Context, db *gorm.DB, pageSize int, cursorMs
 	return list, hasMore, nil
 }
 
-// PullUnReadMessage 获取用户所有会话的未读消息记录
+// PullUnReadMessage 获取用户所有会话的未读消息记录（已撤回消息不返回）
 func PullUnReadMessage(ctx context.Context, db *gorm.DB, currentUid string) ([]Message, error) {
 	// 获取用户所有会话id
 	subConv := db.Model(&ConversationMember{}).Select("conversation_uid").Where("uid = ?", currentUid)
@@ -207,6 +211,7 @@ func PullUnReadMessage(ctx context.Context, db *gorm.DB, currentUid string) ([]M
 		// 会话id 包含在子查询结果集里 的记录 其实上一步已经差不多拿到了
 		Where("cr.last_read_msg_id is null or m.msg_id > cr.last_read_msg_id").
 		// 该用户没有已读 或 消息表msg_id比已读表的msg_id大 的消息记录
+		Where("m.recalled = ?", false).
 		Find(&result).Error
 	return result, err
 }

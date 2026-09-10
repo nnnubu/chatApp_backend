@@ -27,6 +27,9 @@ services:
       # 容器内部访问 MySQL hostname 写服务名字 MySQL 而不是 127.0.0.1
       # 因为 compose 内部有一个虚拟网络 服务名 就是 域名
       - mysql_password=your mysql password
+    extra_hosts:
+      # 让容器内 host.docker.internal 解析到宿主机 IP（AI FastAPI 服务跑在宿主机上，不用容器化）
+      - "host.docker.internal:host-gateway"
   # MySQL 数据库容器 服务名 mysql
   mysql:
     # 使用 mysql8 镜像

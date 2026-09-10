@@ -29,5 +29,18 @@
     "avatar_h": 256,
     "bg_w": 720,
     "bg_h": 405
+  },
+  "ai": {
+    "service-url": "http://127.0.0.1:8000",
+    "proactive-enabled": false,
+    "proactive-check-sec": 60,
+    "proactive-min-minute": 5,
+    "proactive-max-minute": 30,
+    "characters": [
+      {
+        "uid": "ai_debug_001",
+        "proactive": false
+      }
+    ]
   }
 }

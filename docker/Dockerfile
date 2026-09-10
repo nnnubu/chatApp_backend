@@ -3,7 +3,8 @@ FROM alpine:3.20
 # WORKDIR 在容器内部设置工作目录 /app. 后面所有命令默认在这个文件夹执行
 WORKDIR /app
 
-RUN apk add --no-cache tzdata
+# tzdata: 时区数据; ffmpeg: 视频消息上传时抽帧生成缩略图
+RUN apk add --no-cache tzdata ffmpeg
 ENV TZ=Asia/Shanghai
 # `docker-compose.yml` 里构建上下文为 context: . 是项目根目录 所以此处不需要../
 COPY config ./config

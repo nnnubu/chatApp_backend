@@ -46,7 +46,7 @@ func UploadChatVideo(c *gin.Context) {
 		return
 	}
 
-	url, err := user.NewUploadChatVideoService().UploadChatVideo(reqCtx, db, file, uid)
+	url, thumbUrl, err := user.NewUploadChatVideoService().UploadChatVideo(reqCtx, db, file, uid)
 	if err != nil {
 		c.JSON(200, model.CommonResp{
 			Code:    500,
@@ -59,7 +59,8 @@ func UploadChatVideo(c *gin.Context) {
 		Code:    200,
 		Message: "上传成功",
 		Data: map[string]any{
-			"url": url,
+			"url":      url,
+			"thumbUrl": thumbUrl,
 		},
 	})
 }

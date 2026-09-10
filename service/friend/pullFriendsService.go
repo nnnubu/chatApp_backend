@@ -22,7 +22,7 @@ var aiCharacterList = []struct {
 	Name   string
 	Avatar string
 }{
-	{"ai_debug_001", "小助手", "/static/default/avatar/df_avatar1.jpg"},
+	{"ai_debug_001", "小助手", "/static/default/avatar/ai_assistant.jpg"},
 }
 
 // ensureAIFriend 确保用户与所有 AI 角色建立好友关系，不存在则自动创建

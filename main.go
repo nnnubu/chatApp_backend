@@ -35,7 +35,7 @@ func main() {
 	//}
 	//_ = srv.ListenAndServe()
 
-	if err := config.LoadConfig("config/configLocal.json"); err != nil {
+	if err := config.LoadConfig("config/configDocker.json"); err != nil {
 		log.Fatalf("加载配置文件失败: %v", err)
 	}
 	if err := utils.InitSnowflake(); err != nil {
@@ -100,7 +100,7 @@ func main() {
 		Avatar   string
 		Intro    string
 	}{
-		{"ai_debug_001", "小助手", 0, "debug@chatapp.local", "/static/default/avatar/df_avatar1.jpg", "调试用AI助手，友好简洁，用于测试多角色架构。"},
+		{"ai_debug_001", "小助手", 0, "debug@chatapp.local", "/static/default/avatar/ai_assistant.jpg", "调试用AI助手，友好简洁，用于测试多角色架构。"},
 	}
 	for _, ai := range aiCharacters {
 		_, exist, err := model.GetUserByUID(context.Background(), db, ai.UID)

@@ -451,6 +451,9 @@ WebSocketService 监听 ackRespStream:
 - 消息 ACK 确认（8s 超时，最多重试 3 次）
 - 消息防重复（requestId 幂等去重，Redis 防重复推送与入库）
 - 失败消息手动重发支持（前端感叹号点击后重新入队，后端幂等校验避免重复入库）
+- 消息撤回（软删除：数据库保留记录，历史/未读/推送均过滤已撤回消息）
+- 图片 / 语音 / 视频消息（上传接口 + WebSocket 推送，AI 消息支持）
+- 自定义表情包（上传 / 拉取 / 删除，独立 user_sticker 表）
 
 ### WebSocket 架构
 - **分片连接池**：16 分片 + 分片锁，降低锁竞争
@@ -460,6 +463,11 @@ WebSocketService 监听 ackRespStream:
 - **心跳检测**：10s 周期 ping，6s pong 超时，连续丢 3 次判定死亡
 - **指数退避重连**：2s→4s→8s→16s，最多 5 次，健康后重置
 - **发送队列**：FIFO 队列，连接未就绪时积压，恢复后自动补发
+
+### AI 助手模块
+- AI 角色用户自动初始化（ai_debug_001，不存在自动创建，自动建立好友关系）
+- 消息转发：用户发 AI → 后端 HTTP 调用 FastAPI AI 服务（/chat）→ 回复通过 WebSocket 推回
+- AI 主动消息调度（按角色配置时间间隔，proactive 开关可独立关闭）
 
 ## 项目结构
 
@@ -590,6 +598,23 @@ docker compose logs -f chatapp
 - `mysql`：MySQL 8.0（600m 内存，数据持久化）
 - `redis`：Redis 7 Alpine（256m 内存，缓存）
 
+### 4. AI 服务部署（chatapp_ai，独立 FastAPI 服务）
+
+AI 聊天功能依赖独立的 Python 服务（不打包进 Go 镜像，单独部署）。
+
+```bash
+# 1. 上传 chatapp_ai 目录到服务器（如 /opt/chatapp_ai）
+# 2. 配置 .env（SiliconFlow API Key，参考 .env.example）
+cd /opt/chatapp_ai
+pip install -r requirements.txt
+# 3. 启动（建议 systemd / nohup 常驻）
+nohup python main.py > ai.log 2>&1 &
+```
+
+- 默认监听 `0.0.0.0:8000`，Go 后端配置 `ai-service-url` 指向 `http://127.0.0.1:8000`
+- 健康检查：`curl http://localhost:8000/health`
+- 角色与主动消息间隔在 Go 后端 config 中配置（`characters` / `proactive-check-sec`）
+
 ## 配置说明
 
 `config/config.json`：
@@ -623,9 +648,9 @@ docker compose logs -f chatapp
 ## 待开发
 
 - [ ] 群聊功能
-- [ ] 消息撤回
+- [x] 消息撤回
 - [ ] 消息搜索
-- [ ] 图片/文件/语音消息
+- [x] 图片/语音/视频消息
 - [x] 读书模块（图书列表/详情/分类/书架/搜索）
 - [ ] WebSocket 平滑下线
 - [ ] CheckOrigin 域名限制

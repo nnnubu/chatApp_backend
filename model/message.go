@@ -2,6 +2,7 @@ package model
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"gorm.io/gorm"
@@ -20,7 +21,7 @@ type Message struct {
 	SenderUID       string    `gorm:"size:36;not null;comment:消息发送用户UID" json:"senderUID"`
 	ConversationUID string    `gorm:"size:36;not null;comment:会话UID" json:"conversationUID"`
 	MsgType         int8      `gorm:"type:tinyint;not null;comment:消息业务类型" json:"msgType"`
-	// ContentType 消息内容类型 0=文本(默认) 1=图片 2=语音 3=视频
+	// ContentType 消息内容类型 0=文本(默认) 1=图片 2=语音 3=视频 4=表情
 	ContentType     int8      `gorm:"type:tinyint;not null;default:0;comment:消息内容类型" json:"contentType"`
 	Content         string    `gorm:"type:text;comment:消息内容 文本为纯字符串 图片等为JSON" json:"content"`
 	// Recalled 是否已撤回 true=撤回后仅展示提示文案 不展示原内容
@@ -265,4 +266,30 @@ func IsConversationMember(ctx context.Context, db *gorm.DB, conversationUid stri
 		return false, err
 	}
 	return count > 0, nil
+}
+
+// GetMessageByMsgID 根据 msgID 查询消息
+func GetMessageByMsgID(ctx context.Context, db *gorm.DB, msgId string) (*Message, bool, error) {
+	var msg Message
+	err := db.WithContext(ctx).Model(&Message{}).
+		Where("msg_id = ?", msgId).First(&msg).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, false, nil
+		}
+		return nil, false, err
+	}
+	return &msg, true, nil
+}
+
+// RecallMessage 标记消息为已撤回（软删除：数据库保留记录，客户端不可见原内容）
+func RecallMessage(ctx context.Context, db *gorm.DB, msgId string) error {
+	return db.WithContext(ctx).Model(&Message{}).
+		Where("msg_id = ?", msgId).
+		Update("recalled", true).Error
+}
+
+// CreateConversationMembers 批量创建会话成员
+func CreateConversationMembers(ctx context.Context, db *gorm.DB, members []ConversationMember) error {
+	return db.WithContext(ctx).Create(&members).Error
 }

@@ -38,7 +38,7 @@ func ensureAIFriend(ctx context.Context, db *gorm.DB, uid string) {
 				{Uid: uid, FriendUid: ai.UID},
 				{Uid: ai.UID, FriendUid: uid},
 			}
-			return tx.Create(&friends).Error
+			return model.CreateFriends(ctx, tx, friends)
 		})
 	}
 }
@@ -92,8 +92,17 @@ func (pfs *PullFriendsService) PullFriends(ctx context.Context, db *gorm.DB, uid
 	}
 
 	// 将所有 AI 角色插入好友列表最前面（AI 永远在线）
+	// 注意去重：如果 AI 角色已经在数据库好友关系里（ensureAIFriend 曾建立），
+	// 则不再重复插入，否则会出现同一个 AI 在列表中出现两次
 	var aiFriends []dto.PullFriendsResp
+	existingUids := make(map[string]bool, len(result))
+	for _, r := range result {
+		existingUids[r.Uid] = true
+	}
 	for _, ai := range aiCharacterList {
+		if existingUids[ai.UID] {
+			continue
+		}
 		aiFriends = append(aiFriends, dto.PullFriendsResp{
 			Uid:       ai.UID,
 			Nickname:  ai.Name,

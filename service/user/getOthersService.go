@@ -41,17 +41,17 @@ func (gos *VisitOthersService) VisitOthers(ctx context.Context, db *gorm.DB, cur
 	if !exist && service.IsAIUser(targetUid) {
 		conversationUid = utils.GenAutoSnowId()
 		err = db.Transaction(func(tx *gorm.DB) error {
-			if err := tx.Create(&model.Conversation{
+			if err := model.CreateConversation(ctx, tx, &model.Conversation{
 				ConversationUID:  conversationUid,
 				ConversationType: model.MsgTypePrivateChat,
-			}).Error; err != nil {
+			}); err != nil {
 				return err
 			}
 			members := []model.ConversationMember{
 				{ConversationUID: conversationUid, UID: currentUid},
 				{ConversationUID: conversationUid, UID: targetUid},
 			}
-			return tx.Create(&members).Error
+			return model.CreateConversationMembers(ctx, tx, members)
 		})
 		if err != nil {
 			return nil, errors.New("系统繁忙，请稍后重试")

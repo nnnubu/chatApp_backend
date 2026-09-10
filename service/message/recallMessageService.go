@@ -22,13 +22,12 @@ func NewRecallMessageService() *RecallMessageService {
 
 // RecallMessage 撤回消息：仅发送者可撤回 更新 recalled 标记 并广播撤回事件给会话双方
 func (rms *RecallMessageService) RecallMessage(ctx context.Context, db *gorm.DB, rc *redis.Client, senderUid string, req *dto.RecallMessageReq) error {
-	var msg model.Message
-	if err := db.WithContext(ctx).Model(&model.Message{}).
-		Where("msg_id = ?", req.MsgId).First(&msg).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return errors.New("消息不存在或已被删除")
-		}
+	msg, exists, err := model.GetMessageByMsgID(ctx, db, req.MsgId)
+	if err != nil {
 		return err
+	}
+	if !exists {
+		return errors.New("消息不存在或已被删除")
 	}
 	// 只能撤回自己发送的消息
 	if msg.SenderUID != senderUid {
@@ -48,9 +47,7 @@ func (rms *RecallMessageService) RecallMessage(ctx context.Context, db *gorm.DB,
 	}
 
 	// 更新撤回标记
-	if err := db.WithContext(ctx).Model(&model.Message{}).
-		Where("msg_id = ?", req.MsgId).
-		Update("recalled", true).Error; err != nil {
+	if err := model.RecallMessage(ctx, db, req.MsgId); err != nil {
 		global.Log.Error("撤回消息更新失败", zap.String("msgId", req.MsgId), zap.Error(err))
 		return err
 	}

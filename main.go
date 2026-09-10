@@ -87,6 +87,9 @@ func main() {
 	if err := db.AutoMigrate(&model.UserBook{}); err != nil {
 		log.Fatalf("自动创建用户书架表单失败：%v", err)
 	}
+	if err := db.AutoMigrate(&model.UserSticker{}); err != nil {
+		log.Fatalf("自动创建用户表情包表失败：%v", err)
+	}
 
 	// 初始化 AI 角色用户（不存在则自动创建）
 	aiCharacters := []struct {

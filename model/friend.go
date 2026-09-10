@@ -133,6 +133,11 @@ func CreateFriend(ctx context.Context, txDB *gorm.DB, currentUid, targetUid stri
 	}).Error
 }
 
+// CreateFriends 批量创建好友关系（用于事务内一次性创建双向好友关系）
+func CreateFriends(ctx context.Context, txDB *gorm.DB, friends []Friend) error {
+	return txDB.WithContext(ctx).Create(&friends).Error
+}
+
 func PullFriendsByUid(ctx context.Context, db *gorm.DB, uid string, page int, pageSize int) ([]Friend, bool, error) {
 	// *gorm.DB 是可变引用对象 链式调用修改内部 Statement 结构体 部分操作会修改原对象 部分会克隆副本 不同行为结果不一样
 	// query 要记得分开写 或者 使用 Session 克隆副本 如果共用一个 query 比如说先 使用 query.Offset(offset).Limit(pageSize).Order("id desc")
